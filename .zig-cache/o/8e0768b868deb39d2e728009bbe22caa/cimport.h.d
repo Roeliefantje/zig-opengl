@@ -1,0 +1,29 @@
+cimport.o: \
+  C:/Users/roeld/Documents/git/Personal/Zig-Learn-OpenGL/.zig-cache/o/8e0768b868deb39d2e728009bbe22caa/cimport.h \
+  C:/Users/roeld/Documents/git/Personal/Zig-Learn-OpenGL/.zig-cache/o/7378e44811ae43db1506f3d6ed397f66/GLFW/glfw3.h \
+  C:/ZigUp/zig/0.13.0-dev.351+64ef45eb0/files/lib/include/stddef.h \
+  C:/ZigUp/zig/0.13.0-dev.351+64ef45eb0/files/lib/include/__stddef_ptrdiff_t.h \
+  C:/ZigUp/zig/0.13.0-dev.351+64ef45eb0/files/lib/include/__stddef_size_t.h \
+  C:/ZigUp/zig/0.13.0-dev.351+64ef45eb0/files/lib/include/__stddef_wchar_t.h \
+  C:/ZigUp/zig/0.13.0-dev.351+64ef45eb0/files/lib/include/__stddef_null.h \
+  C:/ZigUp/zig/0.13.0-dev.351+64ef45eb0/files/lib/include/__stddef_max_align_t.h \
+  C:/ZigUp/zig/0.13.0-dev.351+64ef45eb0/files/lib/include/__stddef_offsetof.h \
+  C:/ZigUp/zig/0.13.0-dev.351+64ef45eb0/files/lib/include/stdint.h \
+  C:/ZigUp/zig/0.13.0-dev.351+64ef45eb0/files/lib/libc/include/any-windows-any/stdint.h \
+  C:/ZigUp/zig/0.13.0-dev.351+64ef45eb0/files/lib/libc/include/any-windows-any/crtdefs.h \
+  C:/ZigUp/zig/0.13.0-dev.351+64ef45eb0/files/lib/libc/include/any-windows-any/corecrt.h \
+  C:/ZigUp/zig/0.13.0-dev.351+64ef45eb0/files/lib/libc/include/any-windows-any/_mingw.h \
+  C:/ZigUp/zig/0.13.0-dev.351+64ef45eb0/files/lib/libc/include/any-windows-any/_mingw_mac.h \
+  C:/ZigUp/zig/0.13.0-dev.351+64ef45eb0/files/lib/libc/include/any-windows-any/_mingw_secapi.h \
+  C:/ZigUp/zig/0.13.0-dev.351+64ef45eb0/files/lib/include/vadefs.h \
+  C:/ZigUp/zig/0.13.0-dev.351+64ef45eb0/files/lib/libc/include/any-windows-any/vadefs.h \
+  C:/ZigUp/zig/0.13.0-dev.351+64ef45eb0/files/lib/libc/include/any-windows-any/sdks/_mingw_ddk.h \
+  C:/ZigUp/zig/0.13.0-dev.351+64ef45eb0/files/lib/include/__stddef_wint_t.h \
+  C:/Users/roeld/Documents/git/Personal/Zig-Learn-OpenGL/.zig-cache/o/7378e44811ae43db1506f3d6ed397f66/vulkan/vulkan.h \
+  C:/Users/roeld/Documents/git/Personal/Zig-Learn-OpenGL/.zig-cache/o/7378e44811ae43db1506f3d6ed397f66/vulkan/vk_platform.h \
+  C:/Users/roeld/Documents/git/Personal/Zig-Learn-OpenGL/.zig-cache/o/7378e44811ae43db1506f3d6ed397f66/vulkan/vulkan_core.h \
+  C:/Users/roeld/Documents/git/Personal/Zig-Learn-OpenGL/.zig-cache/o/7378e44811ae43db1506f3d6ed397f66/vk_video/vulkan_video_codec_h264std.h \
+  C:/Users/roeld/Documents/git/Personal/Zig-Learn-OpenGL/.zig-cache/o/7378e44811ae43db1506f3d6ed397f66/vk_video/vulkan_video_codecs_common.h \
+  C:/Users/roeld/Documents/git/Personal/Zig-Learn-OpenGL/.zig-cache/o/7378e44811ae43db1506f3d6ed397f66/vk_video/vulkan_video_codec_h264std_decode.h \
+  C:/Users/roeld/Documents/git/Personal/Zig-Learn-OpenGL/.zig-cache/o/7378e44811ae43db1506f3d6ed397f66/vk_video/vulkan_video_codec_h265std.h \
+  C:/Users/roeld/Documents/git/Personal/Zig-Learn-OpenGL/.zig-cache/o/7378e44811ae43db1506f3d6ed397f66/vk_video/vulkan_video_codec_h265std_decode.h
