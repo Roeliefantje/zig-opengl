@@ -2,6 +2,8 @@ const std = @import("std");
 const glfw = @import("mach-glfw");
 const gl = @import("gl");
 
+const shader = @import("rendering/shader.zig");
+
 const glfw_log = std.log.scoped(.glfw);
 const gl_log = std.log.scoped(.gl);
 
@@ -148,23 +150,23 @@ pub fn main() !void {
         var success: c_int = undefined;
         var info_log_buf: [512:0]u8 = undefined;
 
-        const vertex_shader = gl.CreateShader(gl.VERTEX_SHADER);
-        if (vertex_shader == 0) return error.CreateVertexShaderFailed;
-        defer gl.DeleteShader(vertex_shader);
+        // const vertex_shader = gl.CreateShader(gl.VERTEX_SHADER);
+        // if (vertex_shader == 0) return error.CreateVertexShaderFailed;
+        // defer gl.DeleteShader(vertex_shader);
 
-        gl.ShaderSource(
-            vertex_shader,
-            1,
-            (&vertex_shader_source.ptr)[0..1],
-            (&@as(c_int, @intCast(vertex_shader_source.len)))[0..1],
-        );
-        gl.CompileShader(vertex_shader);
-        gl.GetShaderiv(vertex_shader, gl.COMPILE_STATUS, &success);
-        if (success == gl.FALSE) {
-            gl.GetShaderInfoLog(vertex_shader, info_log_buf.len, null, &info_log_buf);
-            gl_log.err("{s}", .{std.mem.sliceTo(&info_log_buf, 0)});
-            return error.CompileVertexShaderFailed;
-        }
+        // gl.ShaderSource(
+        //     vertex_shader,
+        //     1,
+        //     (&vertex_shader_source.ptr)[0..1],
+        //     (&@as(c_int, @intCast(vertex_shader_source.len)))[0..1],
+        // );
+        // gl.CompileShader(vertex_shader);
+        // gl.GetShaderiv(vertex_shader, gl.COMPILE_STATUS, &success);
+        // if (success == gl.FALSE) {
+        //     gl.GetShaderInfoLog(vertex_shader, info_log_buf.len, null, &info_log_buf);
+        //     gl_log.err("{s}", .{std.mem.sliceTo(&info_log_buf, 0)});
+        //     return error.CompileVertexShaderFailed;
+        // }
 
         const fragment_shader = gl.CreateShader(gl.FRAGMENT_SHADER);
         if (fragment_shader == 0) return error.CreateFragmentShaderFailed;

@@ -2,6 +2,8 @@ const std = @import("std");
 const glfw = @import("mach-glfw");
 const gl = @import("gl");
 
+const shader = @import("rendering/shader.zig");
+
 const glfw_log = std.log.scoped(.glfw);
 const gl_log = std.log.scoped(.gl);
 
@@ -99,43 +101,19 @@ pub fn main() !void {
         var info_log_buf: [512:0]u8 = undefined;
 
         //shader compilation and program creation
-        const vertex_shader: c_uint = gl.CreateShader(gl.VERTEX_SHADER);
-        if (vertex_shader == 0) return error.CreateVertexShaderFailed;
+        const vertex_shader = try shader.compile_shader(
+            std.heap.page_allocator,
+            "src/shader/vertex_shader.glsl",
+            gl.VERTEX_SHADER,
+        );
         defer gl.DeleteShader(vertex_shader);
 
-        gl.ShaderSource(
-            vertex_shader,
-            1,
-            (&vertex_shader_source.ptr)[0..1],
-            (&@as(c_int, @intCast(vertex_shader_source.len)))[0..1],
+        const fragment_shader = try shader.compile_shader(
+            std.heap.page_allocator,
+            "src/shader/fragment_shader.glsl",
+            gl.FRAGMENT_SHADER,
         );
-
-        gl.CompileShader(vertex_shader);
-
-        gl.GetShaderiv(vertex_shader, gl.COMPILE_STATUS, &success);
-        if (success == gl.FALSE) {
-            gl.GetShaderInfoLog(vertex_shader, info_log_buf.len, null, &info_log_buf);
-            gl_log.err("{s}", .{std.mem.sliceTo(&info_log_buf, 0)});
-            return error.CompileVertexShaderFailed;
-        }
-
-        const fragment_shader = gl.CreateShader(gl.FRAGMENT_SHADER);
-        if (fragment_shader == 0) return error.CreateFragmentShaderFailed;
         defer gl.DeleteShader(fragment_shader);
-
-        gl.ShaderSource(
-            fragment_shader,
-            1,
-            (&fragment_shader_source.ptr)[0..1],
-            (&@as(c_int, @intCast(fragment_shader_source.len)))[0..1],
-        );
-        gl.CompileShader(fragment_shader);
-        gl.GetShaderiv(fragment_shader, gl.COMPILE_STATUS, &success);
-        if (success == gl.FALSE) {
-            gl.GetShaderInfoLog(fragment_shader, info_log_buf.len, null, &info_log_buf);
-            gl_log.err("{s}", .{std.mem.sliceTo(&info_log_buf, 0)});
-            return error.CompileFragmentShaderFailed;
-        }
 
         const program = gl.CreateProgram();
         if (program == 0) return error.CreateProgramFailed;
