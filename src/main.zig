@@ -12,11 +12,17 @@ fn logGLFWError(error_code: glfw.ErrorCode, description: [:0]const u8) void {
 /// Procedure table that will hold loaded OpenGL functions.
 var gl_procs: gl.ProcTable = undefined;
 
-const triangle = struct {
+const square = struct {
     const vertices = [_]Vertex{
-        .{ .position = .{ -0.5, -0.5, 0 } },
+        .{ .position = .{ 0.5, 0.5, 0 } },
         .{ .position = .{ 0.5, -0.5, 0 } },
-        .{ .position = .{ 0, 0.5, 0 } },
+        .{ .position = .{ -0.5, -0.5, 0 } },
+        .{ .position = .{ -0.5, 0.5, 0 } },
+    };
+
+    const indices = [_]u8{
+        0, 1, 3,
+        1, 2, 3,
     };
 
     const Vertex = extern struct {
@@ -159,6 +165,11 @@ pub fn main() !void {
     gl.GenBuffers(1, (&vbo)[0..1]);
     defer gl.DeleteBuffers(1, (&vbo)[0..1]);
 
+    //Index buffer object (IBO)
+    var ibo: c_uint = undefined;
+    gl.GenBuffers(1, (&ibo)[0..1]);
+    defer gl.DeleteBuffers(1, (&ibo)[0..1]);
+
     {
         gl.BindVertexArray(vao);
         defer gl.BindVertexArray(0);
@@ -167,8 +178,8 @@ pub fn main() !void {
             gl.BindBuffer(gl.ARRAY_BUFFER, vbo);
             gl.BufferData(
                 gl.ARRAY_BUFFER,
-                @sizeOf(@TypeOf(triangle.vertices)),
-                &triangle.vertices,
+                @sizeOf(@TypeOf(square.vertices)),
+                &square.vertices,
                 gl.STATIC_DRAW,
             );
 
@@ -176,13 +187,22 @@ pub fn main() !void {
 
             gl.VertexAttribPointer(
                 0,
-                @typeInfo(triangle.Vertex.Position).array.len,
+                @typeInfo(square.Vertex.Position).array.len,
                 gl.FLOAT,
                 gl.FALSE,
-                @sizeOf(triangle.Vertex),
-                @offsetOf(triangle.Vertex, "position"),
+                @sizeOf(square.Vertex),
+                @offsetOf(square.Vertex, "position"),
             );
             gl.EnableVertexAttribArray(0);
+
+            // Instruct the VAO to use our IBO, then upload index data to the IBO.
+            gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+            gl.BufferData(
+                gl.ELEMENT_ARRAY_BUFFER,
+                @sizeOf(@TypeOf(square.indices)),
+                &square.indices,
+                gl.STATIC_DRAW,
+            );
         }
     }
 
@@ -193,7 +213,7 @@ pub fn main() !void {
         if (window.shouldClose()) break :main_loop;
 
         {
-            gl.ClearColor(1, 1, 1, 1);
+            gl.ClearColor(0, 0, 0, 0);
             gl.Clear(gl.COLOR_BUFFER_BIT);
 
             gl.UseProgram(program);
@@ -202,10 +222,7 @@ pub fn main() !void {
             gl.BindVertexArray(vao);
             defer gl.BindVertexArray(0);
 
-            gl.DrawArrays(gl.TRIANGLES, 0, 3);
-            //             glUseProgram(shaderProgram);
-            // glBindVertexArray(VAO);
-            // glDrawArrays(GL_TRIANGLES, 0, 3);
+            gl.DrawElements(gl.TRIANGLES, square.indices.len, gl.UNSIGNED_BYTE, 0);
         }
 
         window.swapBuffers();
