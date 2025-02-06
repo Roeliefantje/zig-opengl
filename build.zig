@@ -2,6 +2,8 @@ const std = @import("std");
 // https://github.com/castholm/zigglgen
 // https://github.com/emidoots/mach-glfw
 
+const CFlags = &[_][]const u8{"-fPIC"};
+
 // Although this function looks imperative, note that its job is to
 // declaratively construct a build graph that will be executed by an external
 // runner.
@@ -23,6 +25,9 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+
+    exe.addIncludePath(b.path("libs/"));
+    exe.addCSourceFile(.{ .file = b.path("src/stb_image.c"), .flags = CFlags });
 
     // Use mach-glfw.
     const mach_glfw_dep = b.dependency("mach-glfw", .{

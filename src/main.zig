@@ -3,9 +3,14 @@ const glfw = @import("mach-glfw");
 const gl = @import("gl");
 
 const shader = @import("rendering/shader.zig");
+const img = @import("util/image.zig");
 
 const glfw_log = std.log.scoped(.glfw);
 const gl_log = std.log.scoped(.gl);
+
+const c = @cImport({
+    @cInclude("stb_image.h");
+});
 
 fn logGLFWError(error_code: glfw.ErrorCode, description: [:0]const u8) void {
     glfw_log.err("{}: {s}\n", .{ error_code, description });
@@ -183,6 +188,9 @@ pub fn main() !void {
             );
         }
     }
+
+    var image = try img.load_image("src/data/profile-picture.png", 4);
+    defer image.deinit();
 
     main_loop: while (true) {
         glfw.pollEvents();
