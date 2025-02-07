@@ -21,10 +21,10 @@ var gl_procs: gl.ProcTable = undefined;
 
 const square = struct {
     const vertices = [_]Vertex{
-        .{ .position = .{ 0.5, 0.5, 0 } },
-        .{ .position = .{ 0.5, -0.5, 0 } },
-        .{ .position = .{ -0.5, -0.5, 0 } },
-        .{ .position = .{ -0.5, 0.5, 0 } },
+        .{ .position = .{ 0.5, 0.5, 0 }, .uv = .{ 1, 1 } },
+        .{ .position = .{ 0.5, -0.5, 0 }, .uv = .{ 1, 0 } },
+        .{ .position = .{ -0.5, -0.5, 0 }, .uv = .{ 0, 0 } },
+        .{ .position = .{ -0.5, 0.5, 0 }, .uv = .{ 0, 1 } },
     };
 
     const indices = [_]u8{
@@ -34,8 +34,10 @@ const square = struct {
 
     const Vertex = extern struct {
         position: Position,
+        uv: Uv,
 
         const Position = [3]f32;
+        const Uv = [2]f32;
     };
 };
 
@@ -178,6 +180,16 @@ pub fn main() !void {
             );
             gl.EnableVertexAttribArray(0);
 
+            gl.VertexAttribPointer(
+                1,
+                @typeInfo(square.Vertex.Uv).array.len,
+                gl.FLOAT,
+                gl.FALSE,
+                @sizeOf(square.Vertex),
+                @offsetOf(square.Vertex, "uv"),
+            );
+            gl.EnableVertexAttribArray(1);
+
             // Instruct the VAO to use our IBO, then upload index data to the IBO.
             gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
             gl.BufferData(
@@ -189,8 +201,11 @@ pub fn main() !void {
         }
     }
 
-    var image = try img.load_image("src/data/profile-picture.png", 4);
-    defer image.deinit();
+    var image = try img.load_image("src/data/wall.jpg");
+    var texture = try img.tex_from_image(image);
+    defer gl.DeleteTextures(1, (&texture)[0..1]);
+    defer texture = 0;
+    image.deinit();
 
     main_loop: while (true) {
         glfw.pollEvents();
@@ -204,6 +219,9 @@ pub fn main() !void {
 
             gl.UseProgram(program);
             defer gl.UseProgram(0);
+
+            gl.ActiveTexture(gl.TEXTURE0);
+            gl.BindTexture(gl.TEXTURE_2D, texture);
 
             gl.BindVertexArray(vao);
             defer gl.BindVertexArray(0);

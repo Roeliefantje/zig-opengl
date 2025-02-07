@@ -2,6 +2,7 @@ const std = @import("std");
 const c = @cImport({
     @cInclude("stb_image.h");
 });
+const gl = @import("gl");
 
 const log = std.log.scoped(.stb_image);
 
@@ -23,12 +24,11 @@ pub const Image = struct {
 };
 
 /// Load an image from a file
-pub fn load_image(filename: []const u8, nchannels: ?i32) !Image {
-    var img = Image{ .nchan = nchannels orelse 3 };
+pub fn load_image(filename: []const u8) !Image {
+    var img = Image{};
 
-    const req_nchan: i32 = if (nchannels == null) 0 else 1;
     const filename_c = @as([*c]const u8, &filename[0]);
-    const iptr: usize = @intFromPtr(c.stbi_load(filename_c, @as([*c]i32, &img.width), @as([*c]i32, &img.height), @as([*c]i32, &img.nchan), req_nchan));
+    const iptr: usize = @intFromPtr(c.stbi_load(filename_c, @as([*c]i32, &img.width), @as([*c]i32, &img.height), @as([*c]i32, &img.nchan), 0));
     if (iptr == 0) {
         log.err("Error loading image {s} - check that the file exists at the given path", .{filename});
         return error.LoadError;
@@ -50,6 +50,38 @@ pub fn load_image_from_memory(buf: []const u8) !Image {
 
     img.data = @ptrFromInt(iptr);
     return img;
+}
+
+pub fn tex_from_image(img: Image) !c_uint {
+    var texture: c_uint = undefined;
+    gl.GenTextures(1, (&texture)[0..1]);
+    gl.BindTexture(gl.TEXTURE_2D, texture);
+
+    gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+    gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+    std.debug.print("Image loaded: width={}, height={}, nchan={}, data_ptr={*}\n", .{ img.width, img.height, img.nchan, img.data });
+
+    const internal_format: c_int = if (img.nchan == 3) gl.RGB else gl.RGBA;
+    const format: c_uint = if (img.nchan == 3) gl.RGB else gl.RGBA;
+
+    gl.TexImage2D(
+        gl.TEXTURE_2D,
+        0,
+        internal_format,
+        @as(c_int, @intCast(@divTrunc(img.width, 1))),
+        @as(c_int, @intCast(@divTrunc(img.height, 1))),
+        0,
+        format,
+        gl.UNSIGNED_BYTE,
+        @as([*c]const u8, img.data),
+    );
+
+    gl.GenerateMipmap(gl.TEXTURE_2D);
+
+    return texture;
 }
 
 /// Free the data associated with an Image
