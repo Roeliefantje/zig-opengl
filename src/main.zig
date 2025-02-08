@@ -124,7 +124,7 @@ pub fn main() !void {
 
     var tex_out: c_uint = undefined;
     gl.GenTextures(1, (&tex_out)[0..1]);
-    gl.ActiveTexture(gl.TEXTURE0);
+    gl.ActiveTexture(gl.TEXTURE1);
     gl.BindTexture(gl.TEXTURE_2D, tex_out);
     gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 
@@ -150,11 +150,12 @@ pub fn main() !void {
         gl.RGBA32F,
     );
 
-    // var image = try img.load_image("src/data/wall.jpg");
-    // var texture = try img.tex_from_image(image);
-    // defer gl.DeleteTextures(1, (&texture)[0..1]);
-    // defer texture = 0;
-    // image.deinit();
+    gl.ActiveTexture(gl.TEXTURE0);
+    var image = try img.load_image("src/data/wall.jpg");
+    var texture = try img.tex_from_image(image);
+    defer gl.DeleteTextures(1, (&texture)[0..1]);
+    defer texture = 0;
+    image.deinit();
 
     var fbo: c_uint = undefined;
     gl.GenFramebuffers(1, (&fbo)[0..1]);
@@ -187,7 +188,8 @@ pub fn main() !void {
             if (framebuffer_size.height != height or framebuffer_size.width != width) {
                 height = framebuffer_size.height;
                 width = framebuffer_size.width;
-
+                gl.ActiveTexture(gl.TEXTURE1);
+                gl.BindTexture(gl.TEXTURE_2D, tex_out);
                 gl.TexImage2D(
                     gl.TEXTURE_2D,
                     0,
@@ -202,6 +204,8 @@ pub fn main() !void {
                 gl.Uniform2i(resolution_uniform, @intCast(width), @intCast(height));
             }
 
+            //Bind again after potentially modifying other texture.
+            gl.BindTexture(program, texture);
             // gl.ActiveTexture(gl.TEXTURE0);
             // gl.BindTexture(gl.TEXTURE_2D, texture);
 
