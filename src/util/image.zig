@@ -25,6 +25,7 @@ pub const Image = struct {
 
 /// Load an image from a file
 pub fn load_image(filename: []const u8) !Image {
+    c.stbi_set_flip_vertically_on_load(1);
     var img = Image{};
 
     const filename_c = @as([*c]const u8, &filename[0]);
@@ -82,6 +83,34 @@ pub fn tex_from_image(img: Image) !c_uint {
     gl.GenerateMipmap(gl.TEXTURE_2D);
 
     return texture;
+}
+
+pub fn empty_tex(
+    width: u32,
+    height: u32,
+    internal_format: c_int,
+    format: c_uint,
+    data_type: c_uint,
+) c_uint {
+    var tex: c_uint = undefined;
+    gl.GenTextures(1, (&tex)[0..1]);
+    gl.ActiveTexture(gl.TEXTURE31);
+    gl.BindTexture(gl.TEXTURE_2D, tex);
+    gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+
+    gl.TexImage2D(
+        gl.TEXTURE_2D,
+        0,
+        internal_format,
+        @as(c_int, @intCast(width)),
+        @as(c_int, @intCast(height)),
+        0,
+        format,
+        data_type,
+        null,
+    );
+
+    return tex;
 }
 
 /// Free the data associated with an Image

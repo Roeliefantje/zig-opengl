@@ -1,7 +1,6 @@
 const std = @import("std");
 const glfw = @import("mach-glfw");
 const gl = @import("gl");
-const GL_COMPUTE_SHADER = 0x91B9;
 
 const shader = @import("rendering/shader.zig");
 const img = @import("util/image.zig");
@@ -45,8 +44,8 @@ const square = struct {
 pub fn main() !void {
     glfw.setErrorCallback(logGLFWError);
 
-    var width: u32 = 640;
-    var height: u32 = 480;
+    const width: u32 = 1024;
+    const height: u32 = 1024;
     var frame: u32 = 0;
 
     if (!glfw.init(.{})) {
@@ -56,7 +55,7 @@ pub fn main() !void {
     defer glfw.terminate();
 
     // Create our window, specifying that we want to use OpenGL.
-    const window = glfw.Window.create(640, 480, "mach-glfw + OpenGL", null, null, .{
+    const window = glfw.Window.create(width, height, "mach-glfw + OpenGL", null, null, .{
         .context_version_major = gl.info.version_major,
         .context_version_minor = gl.info.version_minor,
         .opengl_profile = .opengl_core_profile,
@@ -86,73 +85,69 @@ pub fn main() !void {
 
     //Finished Window initialization
 
-    const program = create_program: {
-        var success: c_int = undefined;
-        var info_log_buf: [512:0]u8 = undefined;
+    const tex_out = img.empty_tex(width, height, gl.RGBA32F, gl.RGBA, gl.FLOAT);
+    const tex_mask = img.empty_tex(width, height, gl.R32F, gl.RED, gl.FLOAT);
+    const tex_sort_help = img.empty_tex(width, height, gl.R32F, gl.RED, gl.FLOAT);
 
-        //shader compilation and program creation
-        const compute_shader = try shader.compile_shader(
-            std.heap.page_allocator,
-            "src/shader/compute.glsl",
-            gl.COMPUTE_SHADER,
-        );
-        defer gl.DeleteShader(compute_shader);
+    const mask_program = try shader.create_compute_program(std.heap.page_allocator, "src/shader/compute/threshold.glsl");
+    const filter_program = try shader.create_compute_program(std.heap.page_allocator, "src/shader/compute/create_pre_filter.glsl");
+    const sort_program = try shader.create_compute_program(std.heap.page_allocator, "src/shader/compute/bitonic_sort.glsl");
+    defer gl.DeleteProgram(mask_program);
+    defer gl.DeleteProgram(filter_program);
+    defer gl.DeleteProgram(sort_program);
 
-        const program = gl.CreateProgram();
-        if (program == 0) return error.CreateProgramFailed;
-        errdefer gl.DeleteProgram(program);
+    //Setup stuffs for mask program
 
-        // gl.AttachShader(program, vertex_shader);
-        gl.AttachShader(program, compute_shader);
-        gl.LinkProgram(program);
-        gl.GetProgramiv(program, gl.LINK_STATUS, &success);
-        if (success == gl.FALSE) {
-            gl.GetProgramInfoLog(program, info_log_buf.len, null, &info_log_buf);
-            gl_log.err("{s}", .{std.mem.sliceTo(&info_log_buf, 0)});
-            return error.LinkProgramFailed;
-        }
+    gl.UseProgram(mask_program);
 
-        break :create_program program;
-    };
-    gl.UseProgram(program);
-    defer gl.DeleteProgram(program);
-
-    const resolution_uniform = gl.GetUniformLocation(program, "iResolution");
-    gl.Uniform2i(resolution_uniform, @intCast(width), @intCast(height));
-    const frame_uniform = gl.GetUniformLocation(program, "frame");
-    gl.Uniform1i(frame_uniform, @intCast(frame));
-
-    var tex_out: c_uint = undefined;
-    gl.GenTextures(1, (&tex_out)[0..1]);
-    gl.ActiveTexture(gl.TEXTURE1);
-    gl.BindTexture(gl.TEXTURE_2D, tex_out);
-    gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-
-    gl.TexImage2D(
-        gl.TEXTURE_2D,
-        0,
-        gl.RGBA32F,
-        @as(c_int, @intCast(width)),
-        @as(c_int, @intCast(height)),
-        0,
-        gl.RGBA,
-        gl.FLOAT,
-        null,
-    );
+    var mainTexUniform = gl.GetUniformLocation(mask_program, "mainTex");
+    if (mainTexUniform != -1) {
+        gl.Uniform1i(mainTexUniform, 0); // tell the shader to use texture unit 0 for mainTex
+    }
 
     gl.BindImageTexture(
         0,
-        tex_out,
+        tex_mask,
         0,
         gl.FALSE,
         0,
-        gl.WRITE_ONLY,
-        gl.RGBA32F,
+        gl.READ_WRITE,
+        gl.R32F,
     );
 
+    var resolution_uniform = gl.GetUniformLocation(mask_program, "iResolution");
+    gl.Uniform2i(resolution_uniform, @intCast(width), @intCast(height));
+
+    // const frame_uniform = gl.GetUniformLocation(mask_program, "frame");
+    // gl.Uniform1i(frame_uniform, @intCast(frame));
+
+    //Setup stuffs for filter program
+
+    gl.UseProgram(filter_program);
+
+    resolution_uniform = gl.GetUniformLocation(filter_program, "iResolution");
+    gl.Uniform2i(resolution_uniform, @intCast(width), @intCast(height));
+
+    //Setup stuffs for sort program
+
+    gl.UseProgram(sort_program);
+
+    mainTexUniform = gl.GetUniformLocation(mask_program, "mainTex");
+    if (mainTexUniform != -1) {
+        gl.Uniform1i(mainTexUniform, 0); // tell the shader to use texture unit 0 for mainTex
+    }
+
+    resolution_uniform = gl.GetUniformLocation(sort_program, "iResolution");
+    gl.Uniform2i(resolution_uniform, @intCast(width), @intCast(height));
+
+    //SETUP TEXTURE FOR EVERYONE THAT NEEDS IT
+
     gl.ActiveTexture(gl.TEXTURE0);
-    var image = try img.load_image("src/data/wall.jpg");
+    // gl.BindTexture(gl.TEXTURE_2D, mask_program);
+    // gl.BindTexture(gl.TEXTURE_2D, sort_program);
+    var image = try img.load_image("src/data/lena-sample.png");
     var texture = try img.tex_from_image(image);
+    // gl.Bindtexture(gl.TEXTURE_2D, texture);
     defer gl.DeleteTextures(1, (&texture)[0..1]);
     defer texture = 0;
     image.deinit();
@@ -175,37 +170,104 @@ pub fn main() !void {
             gl.ClearColor(0, 0, 0, 0);
             gl.Clear(gl.COLOR_BUFFER_BIT);
 
-            gl.UseProgram(program);
+            gl.UseProgram(mask_program);
             defer gl.UseProgram(0);
-            gl.Uniform1i(frame_uniform, @intCast(frame));
+            // gl.Uniform1i(frame_uniform, @intCast(frame));
             // std.debug.print("The number is: {}\n", .{frame});
 
-            gl.DispatchCompute(width, height, 1);
+            gl.BindImageTexture(
+                0,
+                tex_mask,
+                0,
+                gl.FALSE,
+                0,
+                gl.READ_WRITE,
+                gl.R32F,
+            );
+
+            gl.DispatchCompute(1, height, 1);
             gl.MemoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-            // update texture to proper size and update uniform if the height and width changes.
-            const framebuffer_size = window.getFramebufferSize();
-            if (framebuffer_size.height != height or framebuffer_size.width != width) {
-                height = framebuffer_size.height;
-                width = framebuffer_size.width;
-                gl.ActiveTexture(gl.TEXTURE1);
-                gl.BindTexture(gl.TEXTURE_2D, tex_out);
-                gl.TexImage2D(
-                    gl.TEXTURE_2D,
-                    0,
-                    gl.RGBA32F,
-                    @as(c_int, @intCast(width)),
-                    @as(c_int, @intCast(height)),
-                    0,
-                    gl.RGBA,
-                    gl.FLOAT,
-                    null,
-                );
-                gl.Uniform2i(resolution_uniform, @intCast(width), @intCast(height));
-            }
+            gl.BindImageTexture(0, 0, 0, gl.FALSE, 0, gl.READ_WRITE, gl.R32F);
 
-            //Bind again after potentially modifying other texture.
-            gl.BindTexture(program, texture);
+            gl.UseProgram(filter_program);
+            // gl.Uniform1i(frame_uniform, @intCast(frame));
+            // std.debug.print("The number is: {}\n", .{frame});
+
+            gl.BindImageTexture(
+                0,
+                tex_sort_help,
+                0,
+                gl.FALSE,
+                0,
+                gl.WRITE_ONLY,
+                gl.R32F,
+            );
+
+            gl.BindImageTexture(
+                1,
+                tex_mask,
+                0,
+                gl.FALSE,
+                0,
+                gl.READ_ONLY,
+                gl.R32F,
+            );
+
+            gl.DispatchCompute(1, height, 1);
+            gl.MemoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+            gl.BindImageTexture(0, 0, 0, gl.FALSE, 0, gl.WRITE_ONLY, gl.R32F);
+
+            gl.UseProgram(sort_program);
+
+            gl.BindImageTexture(
+                0,
+                tex_out,
+                0,
+                gl.FALSE,
+                0,
+                gl.READ_WRITE,
+                gl.RGBA32F,
+            );
+
+            gl.BindImageTexture(
+                1,
+                tex_sort_help,
+                0,
+                gl.FALSE,
+                0,
+                gl.READ_WRITE,
+                gl.R32F,
+            );
+
+            gl.DispatchCompute(1, height, 1);
+            gl.MemoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+            // // update texture to proper size and update uniform if the height and width changes.
+            // const framebuffer_size = window.getFramebufferSize();
+            // if (framebuffer_size.height != height or framebuffer_size.width != width) {
+            //     height = framebuffer_size.height;
+            //     width = framebuffer_size.width;
+            //     gl.ActiveTexture(gl.TEXTURE1);
+            //     gl.BindTexture(gl.TEXTURE_2D, tex_out);
+            //     gl.TexImage2D(
+            //         gl.TEXTURE_2D,
+            //         0,
+            //         gl.RGBA32F,
+            //         @as(c_int, @intCast(width)),
+            //         @as(c_int, @intCast(height)),
+            //         0,
+            //         gl.RGBA,
+            //         gl.FLOAT,
+            //         null,
+            //     );
+            //     gl.Uniform2i(resolution_uniform, @intCast(width), @intCast(height));
+            // }
+
+            // //Bind again after potentially modifying other texture.
+            // gl.ActiveTexture(gl.TEXTURE0);
+            // gl.BindTexture(mask_program, texture);
             // gl.ActiveTexture(gl.TEXTURE0);
             // gl.BindTexture(gl.TEXTURE_2D, texture);
 
