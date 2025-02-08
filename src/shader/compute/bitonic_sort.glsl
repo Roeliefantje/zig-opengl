@@ -38,8 +38,13 @@ void main() {
             float helpValueLow = imageLoad(helpImg, ivec2(indexLow, iCoords.y)).r;
             float helpValueHigh = imageLoad(helpImg, ivec2(indexHigh, iCoords.y)).r;
 
-            float magLow = valueLow.r + helpValueLow * 2048;
-            float magHigh = valueHigh.r + helpValueHigh * 2048;
+            // float magLow = length(valueLow) + helpValueLow * 2048;
+            // float magHigh = length(valueHigh) + helpValueHigh * 2048;
+
+            vec3 grayScaleMultipliers = vec3(0.3, 0.59, 0.11);
+
+            float magLow = dot(valueLow.rgb, grayScaleMultipliers)  + helpValueLow * 2048;
+            float magHigh = dot(valueHigh.rgb, grayScaleMultipliers) + helpValueHigh * 2048;
 
             if (magLow > magHigh) {
                 imageStore(img, ivec2(indexLow, iCoords.y), valueHigh);

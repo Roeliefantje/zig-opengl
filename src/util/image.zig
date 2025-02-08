@@ -67,7 +67,7 @@ pub fn tex_from_image(img: Image) !c_uint {
 
     const internal_format: c_int = if (img.nchan == 3) gl.RGB else gl.RGBA;
     const format: c_uint = if (img.nchan == 3) gl.RGB else gl.RGBA;
-
+    gl.PixelStorei(gl.UNPACK_ALIGNMENT, 1);
     gl.TexImage2D(
         gl.TEXTURE_2D,
         0,
