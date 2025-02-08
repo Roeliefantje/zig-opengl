@@ -39,7 +39,7 @@ pub fn build(b: *std.Build) void {
     // Use zigglgen to generate OpenGL bindings.
     const gl_bindings = @import("zigglgen").generateBindingsModule(b, .{
         .api = .gl,
-        .version = .@"4.1", // OpenGL 4.1 is the last version supported on macOS.
+        .version = .@"4.3", // OpenGL 4.1 is the last version supported on macOS.
         .profile = .core,
     });
     exe.root_module.addImport("gl", gl_bindings);

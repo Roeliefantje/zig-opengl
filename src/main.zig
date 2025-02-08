@@ -1,6 +1,7 @@
 const std = @import("std");
 const glfw = @import("mach-glfw");
 const gl = @import("gl");
+const GL_COMPUTE_SHADER = 0x91B9;
 
 const shader = @import("rendering/shader.zig");
 const img = @import("util/image.zig");
@@ -41,30 +42,11 @@ const square = struct {
     };
 };
 
-const vertex_shader_source: [:0]const u8 =
-    \\#version 330 core
-    \\layout (location = 0) in vec3 aPos;
-    \\
-    \\void main()
-    \\{
-    \\    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
-    \\}
-    \\
-;
-
-const fragment_shader_source: [:0]const u8 =
-    \\#version 330 core
-    \\out vec4 FragColor;
-    \\
-    \\void main()
-    \\{
-    \\    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
-    \\}
-    \\
-;
-
 pub fn main() !void {
     glfw.setErrorCallback(logGLFWError);
+
+    var width: u32 = 640;
+    var height: u32 = 480;
 
     if (!glfw.init(.{})) {
         glfw_log.err("failed to initialize GLFW: {?s}", .{glfw.getErrorString()});
@@ -108,26 +90,19 @@ pub fn main() !void {
         var info_log_buf: [512:0]u8 = undefined;
 
         //shader compilation and program creation
-        const vertex_shader = try shader.compile_shader(
+        const compute_shader = try shader.compile_shader(
             std.heap.page_allocator,
-            "src/shader/vertex_shader.glsl",
-            gl.VERTEX_SHADER,
+            "src/shader/compute.glsl",
+            gl.COMPUTE_SHADER,
         );
-        defer gl.DeleteShader(vertex_shader);
-
-        const fragment_shader = try shader.compile_shader(
-            std.heap.page_allocator,
-            "src/shader/fragment_shader.glsl",
-            gl.FRAGMENT_SHADER,
-        );
-        defer gl.DeleteShader(fragment_shader);
+        defer gl.DeleteShader(compute_shader);
 
         const program = gl.CreateProgram();
         if (program == 0) return error.CreateProgramFailed;
         errdefer gl.DeleteProgram(program);
 
-        gl.AttachShader(program, vertex_shader);
-        gl.AttachShader(program, fragment_shader);
+        // gl.AttachShader(program, vertex_shader);
+        gl.AttachShader(program, compute_shader);
         gl.LinkProgram(program);
         gl.GetProgramiv(program, gl.LINK_STATUS, &success);
         if (success == gl.FALSE) {
@@ -138,74 +113,52 @@ pub fn main() !void {
 
         break :create_program program;
     };
+    gl.UseProgram(program);
     defer gl.DeleteProgram(program);
 
-    //VAO init
-    var vao: c_uint = undefined;
-    gl.GenVertexArrays(1, (&vao)[0..1]);
-    defer gl.DeleteVertexArrays(1, (&vao)[0..1]);
+    const resolution_uniform = gl.GetUniformLocation(program, "iResolution");
+    gl.Uniform2i(resolution_uniform, @intCast(width), @intCast(height));
 
-    //VBO init and buffer transfer
-    var vbo: c_uint = undefined;
-    gl.GenBuffers(1, (&vbo)[0..1]);
-    defer gl.DeleteBuffers(1, (&vbo)[0..1]);
+    var tex_out: c_uint = undefined;
+    gl.GenTextures(1, (&tex_out)[0..1]);
+    gl.ActiveTexture(gl.TEXTURE0);
+    gl.BindTexture(gl.TEXTURE_2D, tex_out);
+    gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 
-    //Index buffer object (IBO)
-    var ibo: c_uint = undefined;
-    gl.GenBuffers(1, (&ibo)[0..1]);
-    defer gl.DeleteBuffers(1, (&ibo)[0..1]);
+    gl.TexImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA32F,
+        @as(c_int, @intCast(width)),
+        @as(c_int, @intCast(height)),
+        0,
+        gl.RGBA,
+        gl.FLOAT,
+        null,
+    );
 
-    {
-        gl.BindVertexArray(vao);
-        defer gl.BindVertexArray(0);
+    gl.BindImageTexture(
+        0,
+        tex_out,
+        0,
+        gl.FALSE,
+        0,
+        gl.WRITE_ONLY,
+        gl.RGBA32F,
+    );
 
-        {
-            gl.BindBuffer(gl.ARRAY_BUFFER, vbo);
-            gl.BufferData(
-                gl.ARRAY_BUFFER,
-                @sizeOf(@TypeOf(square.vertices)),
-                &square.vertices,
-                gl.STATIC_DRAW,
-            );
+    // var image = try img.load_image("src/data/wall.jpg");
+    // var texture = try img.tex_from_image(image);
+    // defer gl.DeleteTextures(1, (&texture)[0..1]);
+    // defer texture = 0;
+    // image.deinit();
 
-            // const position_attrib: c_uint = @intCast(gl.GetAttribLocation(program, "a_Position"));
-
-            gl.VertexAttribPointer(
-                0,
-                @typeInfo(square.Vertex.Position).array.len,
-                gl.FLOAT,
-                gl.FALSE,
-                @sizeOf(square.Vertex),
-                @offsetOf(square.Vertex, "position"),
-            );
-            gl.EnableVertexAttribArray(0);
-
-            gl.VertexAttribPointer(
-                1,
-                @typeInfo(square.Vertex.Uv).array.len,
-                gl.FLOAT,
-                gl.FALSE,
-                @sizeOf(square.Vertex),
-                @offsetOf(square.Vertex, "uv"),
-            );
-            gl.EnableVertexAttribArray(1);
-
-            // Instruct the VAO to use our IBO, then upload index data to the IBO.
-            gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
-            gl.BufferData(
-                gl.ELEMENT_ARRAY_BUFFER,
-                @sizeOf(@TypeOf(square.indices)),
-                &square.indices,
-                gl.STATIC_DRAW,
-            );
-        }
-    }
-
-    var image = try img.load_image("src/data/wall.jpg");
-    var texture = try img.tex_from_image(image);
-    defer gl.DeleteTextures(1, (&texture)[0..1]);
-    defer texture = 0;
-    image.deinit();
+    var fbo: c_uint = undefined;
+    gl.GenFramebuffers(1, (&fbo)[0..1]);
+    gl.BindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex_out, 0);
+    gl.BindFramebuffer(gl.READ_FRAMEBUFFER, fbo);
+    gl.BindFramebuffer(gl.DRAW_FRAMEBUFFER, 0);
 
     main_loop: while (true) {
         glfw.pollEvents();
@@ -220,13 +173,48 @@ pub fn main() !void {
             gl.UseProgram(program);
             defer gl.UseProgram(0);
 
-            gl.ActiveTexture(gl.TEXTURE0);
-            gl.BindTexture(gl.TEXTURE_2D, texture);
+            gl.DispatchCompute(width, height, 1);
+            gl.MemoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-            gl.BindVertexArray(vao);
-            defer gl.BindVertexArray(0);
+            // update texture to proper size and update uniform if the height and width changes.
+            const framebuffer_size = window.getFramebufferSize();
+            if (framebuffer_size.height != height or framebuffer_size.width != width) {
+                height = framebuffer_size.height;
+                width = framebuffer_size.width;
 
-            gl.DrawElements(gl.TRIANGLES, square.indices.len, gl.UNSIGNED_BYTE, 0);
+                gl.TexImage2D(
+                    gl.TEXTURE_2D,
+                    0,
+                    gl.RGBA32F,
+                    @as(c_int, @intCast(width)),
+                    @as(c_int, @intCast(height)),
+                    0,
+                    gl.RGBA,
+                    gl.FLOAT,
+                    null,
+                );
+                gl.Uniform2i(resolution_uniform, @intCast(width), @intCast(height));
+            }
+
+            // gl.ActiveTexture(gl.TEXTURE0);
+            // gl.BindTexture(gl.TEXTURE_2D, texture);
+
+            // gl.BindVertexArray(vao);
+            // defer gl.BindVertexArray(0);
+            gl.BlitFramebuffer(
+                0,
+                0,
+                @intCast(width),
+                @intCast(height),
+                0,
+                0,
+                @intCast(width),
+                @intCast(height),
+                gl.COLOR_BUFFER_BIT,
+                gl.LINEAR,
+            );
+            // gl.FrameBufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex_out, 0);
+            // gl.DrawElements(gl.TRIANGLES, square.indices.len, gl.UNSIGNED_BYTE, 0);
         }
 
         window.swapBuffers();
