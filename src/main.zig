@@ -47,6 +47,7 @@ pub fn main() !void {
 
     var width: u32 = 640;
     var height: u32 = 480;
+    var frame: u32 = 0;
 
     if (!glfw.init(.{})) {
         glfw_log.err("failed to initialize GLFW: {?s}", .{glfw.getErrorString()});
@@ -118,6 +119,8 @@ pub fn main() !void {
 
     const resolution_uniform = gl.GetUniformLocation(program, "iResolution");
     gl.Uniform2i(resolution_uniform, @intCast(width), @intCast(height));
+    const frame_uniform = gl.GetUniformLocation(program, "frame");
+    gl.Uniform1i(frame_uniform, @intCast(frame));
 
     var tex_out: c_uint = undefined;
     gl.GenTextures(1, (&tex_out)[0..1]);
@@ -167,11 +170,14 @@ pub fn main() !void {
         if (window.shouldClose()) break :main_loop;
 
         {
+            frame += 1;
             gl.ClearColor(0, 0, 0, 0);
             gl.Clear(gl.COLOR_BUFFER_BIT);
 
             gl.UseProgram(program);
             defer gl.UseProgram(0);
+            gl.Uniform1i(frame_uniform, @intCast(frame));
+            // std.debug.print("The number is: {}\n", .{frame});
 
             gl.DispatchCompute(width, height, 1);
             gl.MemoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT);
