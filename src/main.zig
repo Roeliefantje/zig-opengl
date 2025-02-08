@@ -19,33 +19,11 @@ fn logGLFWError(error_code: glfw.ErrorCode, description: [:0]const u8) void {
 /// Procedure table that will hold loaded OpenGL functions.
 var gl_procs: gl.ProcTable = undefined;
 
-const square = struct {
-    const vertices = [_]Vertex{
-        .{ .position = .{ 0.5, 0.5, 0 }, .uv = .{ 1, 1 } },
-        .{ .position = .{ 0.5, -0.5, 0 }, .uv = .{ 1, 0 } },
-        .{ .position = .{ -0.5, -0.5, 0 }, .uv = .{ 0, 0 } },
-        .{ .position = .{ -0.5, 0.5, 0 }, .uv = .{ 0, 1 } },
-    };
-
-    const indices = [_]u8{
-        0, 1, 3,
-        1, 2, 3,
-    };
-
-    const Vertex = extern struct {
-        position: Position,
-        uv: Uv,
-
-        const Position = [3]f32;
-        const Uv = [2]f32;
-    };
-};
-
 pub fn main() !void {
     glfw.setErrorCallback(logGLFWError);
 
     const width: u32 = 1024;
-    const height: u32 = 1024;
+    const height: u32 = 683;
     var frame: u32 = 0;
 
     if (!glfw.init(.{})) {
@@ -145,7 +123,7 @@ pub fn main() !void {
     gl.ActiveTexture(gl.TEXTURE0);
     // gl.BindTexture(gl.TEXTURE_2D, mask_program);
     // gl.BindTexture(gl.TEXTURE_2D, sort_program);
-    var image = try img.load_image("src/data/lena-sample.png");
+    var image = try img.load_image("src/data/bird.jpg");
     var texture = try img.tex_from_image(image);
     // gl.Bindtexture(gl.TEXTURE_2D, texture);
     defer gl.DeleteTextures(1, (&texture)[0..1]);

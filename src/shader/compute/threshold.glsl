@@ -12,7 +12,7 @@ void main() {
 
     float luminance = dot(texture(mainTex, uv).rgb, vec3(0.3, 0.59, 0.11));
 
-    if (luminance < 0.6 || luminance > 0.82) {
+    if (luminance < 0.1 || luminance > 0.4) {
         imageStore(img, iCoords, vec4(0, 0, 0, 1));
     } else {
         // vec4 color = vec4(luminance);

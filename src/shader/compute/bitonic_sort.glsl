@@ -11,7 +11,7 @@ void main() {
     ivec2 iCoords = ivec2(gl_GlobalInvocationID.xy);
     vec2 uv = vec2(iCoords) / iResolution;
 
-    int numPairs = 320;
+    int numPairs = 511;
     int numStages = int(log2(numPairs * 2)) + 1;
 
     //Initialize image
