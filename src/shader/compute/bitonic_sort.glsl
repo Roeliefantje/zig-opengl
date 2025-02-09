@@ -1,5 +1,5 @@
 #version 430
-layout(local_size_x = 128, local_size_y = 1) in;
+layout(local_size_x = 1024, local_size_y = 1) in;
 layout(rgba32f, binding = 0) uniform image2D img;
 layout(r32f, binding = 1) uniform image2D helpImg;
 uniform ivec2 iResolution;
@@ -17,13 +17,13 @@ void main() {
 
     uint n = nextPowerOf2(iResolution.x);
 
-    // uint amount_of_pixels = uint(ceil(n / 128)); //Ceil so its always at least 1 :)
+    // uint amount_of_pixels = uint(ceil(n / 1024)); //Ceil so its always at least 1 :)
 
     int numPairs = int(n / 2);
     int numStages = int(log2(numPairs * 2));
 
     //Initialize image
-    for (uint i = uint(iCoords.x); i < uint(iResolution.x); i += 128){
+    for (uint i = uint(iCoords.x); i < uint(iResolution.x); i += 1024){
         ivec2 pixelCoords = ivec2(i, iCoords.y);
         vec2 uv = vec2(pixelCoords) / iResolution;
         vec4 initial = vec4(texture(mainTex, uv).rgb, 1);
@@ -39,7 +39,7 @@ void main() {
         
     for (int stage = 0; stage < numStages; stage++) {
         for (int pass = 0; pass < stage; pass++){
-            for (uint i = uint(iCoords.x); i < uint(iResolution.x); i += 128){
+            for (uint i = uint(iCoords.x); i < uint(iResolution.x); i += 1024){
                 int groupWidth = 1 << (stage - pass);
                 int groupHeight = 2 * groupWidth - 1;
 
