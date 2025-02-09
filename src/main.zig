@@ -24,8 +24,8 @@ var gl_procs: gl.ProcTable = undefined;
 pub fn main() !void {
     glfw.setErrorCallback(logGLFWError);
 
-    const width: u32 = 1024;
-    const height: u32 = 683;
+    const width: u32 = 1920;
+    const height: u32 = 1080;
     var frame: u32 = 0;
     // pretty cool lena: 0.201, Upper threshold: 0.594
     var lower_threshold: f32 = 0.201;
@@ -133,7 +133,7 @@ pub fn main() !void {
     gl.ActiveTexture(gl.TEXTURE0);
     // gl.BindTexture(gl.TEXTURE_2D, mask_program);
     // gl.BindTexture(gl.TEXTURE_2D, sort_program);
-    var image = try img.load_image("src/data/lena-sample.png");
+    var image = try img.load_image("src/data/bird.jpg");
     var texture = try img.tex_from_image(image);
     // gl.Bindtexture(gl.TEXTURE_2D, texture);
     defer gl.DeleteTextures(1, (&texture)[0..1]);
@@ -220,7 +220,7 @@ pub fn main() !void {
                 gl.R32F,
             );
 
-            gl.DispatchCompute(1, height, 1);
+            gl.DispatchCompute(@divFloor(width + 127, 128), height, 1);
             gl.MemoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
             gl.BindImageTexture(0, 0, 0, gl.FALSE, 0, gl.READ_WRITE, gl.R32F);

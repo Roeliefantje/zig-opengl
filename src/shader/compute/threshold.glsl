@@ -1,5 +1,5 @@
 #version 430
-layout(local_size_x = 1024, local_size_y = 1) in;
+layout(local_size_x = 128, local_size_y = 1) in;
 layout(r32f, binding = 0) uniform image2D img;
 uniform ivec2 iResolution;
 

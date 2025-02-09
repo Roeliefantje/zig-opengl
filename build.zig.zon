@@ -32,8 +32,8 @@
             .hash = "122022ea6df16700e521078c20d7d01f894c6f967e6c6ce1ea166426b4fc61667de3",
         },
         .zgui = .{
-            .url = "git+https://github.com/zig-gamedev/zgui#ca22cd8bba6eb0826646825931ba6a8f2ddab5f8",
-            .hash = "12201218fca4f97d511017f76351f3973f354b553aa48c1b6ee60e90fb3a68caac10",
+            .url = "git+https://github.com/zig-gamedev/zgui",
+            .hash = "1220d4d6e539b6c60ae448ac3b2c724cccdf9e53eb889a16a5a3dc9689feca4e8c7e",
         },
     },
     .paths = .{
