@@ -44,6 +44,13 @@ pub fn build(b: *std.Build) void {
     });
     exe.root_module.addImport("gl", gl_bindings);
 
+    // Use zgui
+    const zgui = b.dependency("zgui", .{
+        .shared = false,
+        .with_implot = true,
+    });
+    exe.root_module.addImport("zgui", zgui.module("root"));
+    exe.linkLibrary(zgui.artifact("imgui"));
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
     // step when running `zig build`).

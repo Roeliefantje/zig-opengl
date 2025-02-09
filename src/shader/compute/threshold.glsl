@@ -5,14 +5,15 @@ uniform ivec2 iResolution;
 
 uniform sampler2D mainTex;
 
+uniform vec2 thresholds;
+
 void main() {
 
     ivec2 iCoords = ivec2(gl_GlobalInvocationID.xy);
     vec2 uv = vec2(iCoords) / iResolution;
 
     float luminance = dot(texture(mainTex, uv).rgb, vec3(0.3, 0.59, 0.11));
-
-    if (luminance < 0.1 || luminance > 0.4) {
+    if (luminance < thresholds.x || luminance > thresholds.y) {
         imageStore(img, iCoords, vec4(0, 0, 0, 1));
     } else {
         // vec4 color = vec4(luminance);

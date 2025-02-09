@@ -8,6 +8,8 @@ const img = @import("util/image.zig");
 const glfw_log = std.log.scoped(.glfw);
 const gl_log = std.log.scoped(.gl);
 
+const zgui = @import("zgui");
+
 const c = @cImport({
     @cInclude("stb_image.h");
 });
@@ -25,6 +27,9 @@ pub fn main() !void {
     const width: u32 = 1024;
     const height: u32 = 683;
     var frame: u32 = 0;
+    // pretty cool lena: 0.201, Upper threshold: 0.594
+    var lower_threshold: f32 = 0.201;
+    var higher_threshold: f32 = 0.594;
 
     if (!glfw.init(.{})) {
         glfw_log.err("failed to initialize GLFW: {?s}", .{glfw.getErrorString()});
@@ -63,6 +68,8 @@ pub fn main() !void {
 
     //Finished Window initialization
 
+    //Texture inits
+
     const tex_out = img.empty_tex(width, height, gl.RGBA32F, gl.RGBA, gl.FLOAT);
     const tex_mask = img.empty_tex(width, height, gl.R32F, gl.RED, gl.FLOAT);
     const tex_sort_help = img.empty_tex(width, height, gl.R32F, gl.RED, gl.FLOAT);
@@ -96,6 +103,9 @@ pub fn main() !void {
     var resolution_uniform = gl.GetUniformLocation(mask_program, "iResolution");
     gl.Uniform2i(resolution_uniform, @intCast(width), @intCast(height));
 
+    const threshold_uniform = gl.GetUniformLocation(mask_program, "thresholds");
+    gl.Uniform2f(threshold_uniform, lower_threshold, higher_threshold);
+
     // const frame_uniform = gl.GetUniformLocation(mask_program, "frame");
     // gl.Uniform1i(frame_uniform, @intCast(frame));
 
@@ -123,7 +133,7 @@ pub fn main() !void {
     gl.ActiveTexture(gl.TEXTURE0);
     // gl.BindTexture(gl.TEXTURE_2D, mask_program);
     // gl.BindTexture(gl.TEXTURE_2D, sort_program);
-    var image = try img.load_image("src/data/bird.jpg");
+    var image = try img.load_image("src/data/lena-sample.png");
     var texture = try img.tex_from_image(image);
     // gl.Bindtexture(gl.TEXTURE_2D, texture);
     defer gl.DeleteTextures(1, (&texture)[0..1]);
@@ -137,19 +147,66 @@ pub fn main() !void {
     gl.BindFramebuffer(gl.READ_FRAMEBUFFER, fbo);
     gl.BindFramebuffer(gl.DRAW_FRAMEBUFFER, 0);
 
+    var changeUpper = false;
+
+    var last_time: f64 = @as(f64, @floatFromInt(std.time.milliTimestamp()));
+
     main_loop: while (true) {
         glfw.pollEvents();
 
         // Exit the main loop if the user is trying to close the window.
         if (window.shouldClose()) break :main_loop;
-
         {
+            const curr_time: f64 = @as(f64, @floatFromInt(std.time.milliTimestamp())) / 1000.0;
+            const delta_time: f64 = curr_time - last_time;
+            last_time = curr_time;
             frame += 1;
+
+            // std.debug.print("curr  time: {d:.3}\n", .{curr_time});
+            // std.debug.print("delta time: {d:.3}\n", .{curr_time});
+
+            // Process keypresses
+            if (window.getKey(glfw.Key.h) == glfw.Action.press) {
+                changeUpper = true;
+            }
+
+            if (window.getKey(glfw.Key.l) == glfw.Action.press) {
+                changeUpper = false;
+            }
+
+            if (window.getKey(glfw.Key.right) == glfw.Action.press) {
+                if (changeUpper) {
+                    // std.debug.print("Increasing upper_threshold by {d:.3}\n", .{@as(f32, @floatCast(delta_time)) * 10});
+                    higher_threshold = @min(1.0, higher_threshold + @as(f32, @floatCast(delta_time)) * 0.1);
+                    std.debug.print("Increased upper_threshold to {d:.3}\n", .{higher_threshold});
+                    std.debug.print("Lower Threshold: {d:.3}, Upper threshold: {d:.3}\n", .{ lower_threshold, higher_threshold });
+                } else {
+                    // std.debug.print("Increasing lower_threshold by {d:.3}\n", .{@as(f32, @floatCast(delta_time)) * 10});
+                    lower_threshold = @min(1.0, lower_threshold + @as(f32, @floatCast(delta_time)) * 0.1);
+                    std.debug.print("Increased lower_threshold to {d:.3}\n", .{lower_threshold});
+                    std.debug.print("Lower Threshold: {d:.3}, Upper threshold: {d:.3}\n", .{ lower_threshold, higher_threshold });
+                }
+            }
+
+            if (window.getKey(glfw.Key.left) == glfw.Action.press) {
+                if (changeUpper) {
+                    higher_threshold = @max(0.0, higher_threshold - @as(f32, @floatCast(delta_time)) * 0.1);
+                    std.debug.print("Decreased upper_threshold to {d:.3}\n", .{higher_threshold});
+                    std.debug.print("Lower Threshold: {d:.3}, Upper threshold: {d:.3}\n", .{ lower_threshold, higher_threshold });
+                } else {
+                    lower_threshold = @max(0.0, lower_threshold - @as(f32, @floatCast(delta_time)) * 0.1);
+                    std.debug.print("Decreased lower_threshold to {d:.3}\n", .{lower_threshold});
+                    std.debug.print("Lower Threshold: {d:.3}, Upper threshold: {d:.3}\n", .{ lower_threshold, higher_threshold });
+                }
+            }
+
             gl.ClearColor(0, 0, 0, 0);
             gl.Clear(gl.COLOR_BUFFER_BIT);
 
             gl.UseProgram(mask_program);
             defer gl.UseProgram(0);
+
+            gl.Uniform2f(threshold_uniform, lower_threshold, higher_threshold);
             // gl.Uniform1i(frame_uniform, @intCast(frame));
             // std.debug.print("The number is: {}\n", .{frame});
 
