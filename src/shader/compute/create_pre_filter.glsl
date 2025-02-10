@@ -18,8 +18,11 @@ void main() {
     for (uint x = 0; x < iResolution.x; x++) {
         float mask = imageLoad(maskImg, ivec2(x, y)).r;
         imageStore(helpImg, ivec2(x, y), vec4(start_value));
-        if (mask <= 0.1) {
+        if (mask >= 0.1) {
             start_value += increment_value;
         }
+        // if (mask <= 0.1) {
+        //     start_value += increment_value;
+        // }
     }
 }

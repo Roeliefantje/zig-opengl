@@ -28,7 +28,7 @@ pub fn main() !void {
     const height: u32 = 1080;
     var frame: u32 = 0;
     // pretty cool lena: 0.201, Upper threshold: 0.594
-    var lower_threshold: f32 = 0.201;
+    var lower_threshold: f32 = 0.011;
     var higher_threshold: f32 = 0.594;
 
     if (!glfw.init(.{})) {
@@ -74,7 +74,7 @@ pub fn main() !void {
     const tex_mask = img.empty_tex(width, height, gl.R32F, gl.RED, gl.FLOAT);
     const tex_sort_help = img.empty_tex(width, height, gl.R32F, gl.RED, gl.FLOAT);
 
-    const mask_program = try shader.create_compute_program(std.heap.page_allocator, "src/shader/compute/threshold.glsl");
+    const mask_program = try shader.create_compute_program(std.heap.page_allocator, "src/shader/compute/edge.glsl");
     const filter_program = try shader.create_compute_program(std.heap.page_allocator, "src/shader/compute/create_pre_filter.glsl");
     const sort_program = try shader.create_compute_program(std.heap.page_allocator, "src/shader/compute/bitonic_sort.glsl");
     defer gl.DeleteProgram(mask_program);
@@ -133,7 +133,7 @@ pub fn main() !void {
     gl.ActiveTexture(gl.TEXTURE0);
     // gl.BindTexture(gl.TEXTURE_2D, mask_program);
     // gl.BindTexture(gl.TEXTURE_2D, sort_program);
-    var image = try img.load_image("src/data/bird.jpg");
+    var image = try img.load_image("src/data/lena-sample.png");
     var texture = try img.tex_from_image(image);
     // gl.Bindtexture(gl.TEXTURE_2D, texture);
     defer gl.DeleteTextures(1, (&texture)[0..1]);
